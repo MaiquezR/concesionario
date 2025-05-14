@@ -15,10 +15,6 @@ CREATE_CARS_TABLE = (
 
 GET_ALL_CARS = "SELECT * FROM cars"
 
-GET_CAR_BY_ID = "SELECT * FROM cars WHERE id=%s"
-
-# GET_CARS_FILTERED = "SELECT * FROM cars WHERE "
-
 SELL_CAR = "UPDATE cars SET sold='1' WHERE id=%s"
 
 INSERT_NEW_CAR = "INSERT INTO cars (make, model, color) VALUES (%s, %s, %s)"
@@ -72,29 +68,6 @@ def index():
     conn.close()
 
     return render_template("index.html", data=data)
-
-
-@app.route("/getbyid", methods=["GET"])
-def getcarbyid():
-
-    id = request.form["id"]
-
-    conn = psycopg.connect(
-        host="localhost",
-        dbname="flask_db",
-        user="postgres",
-        password="root",
-    )
-
-    cur = conn.cursor()
-    cur.execute(GET_CAR_BY_ID, (id,))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
 
 
 @app.route("/add", methods=["POST"])
@@ -170,24 +143,6 @@ def sellcar():
     conn.close()
 
     return redirect(url_for("index"))
-
-    # @app.route("/filter", methods=["GET"])
-    # def getcarfilter():
-
-    #     id = request.form["id"]
-    #     filter = request.form["filter"]
-
-    # cur = conn.cursor()
-
-
-#     cur.execute(GET_CARS_FILTERED, (filter, id))
-
-#     conn.commit()
-
-#     cur.close()
-#     conn.close()
-
-#     return render_template("index.html")
 
 
 # The delete route deletes a car by id
