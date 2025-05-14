@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>concesionario</title>
+    <!-- <link href="css/style.css" rel="stylesheet"> -->
+  </head>
+  <body>
+  
+    <h1>CONCESIONARIO</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Make</th>
+          <th>Model</th>
+          <th>Color</th>
+          <th>Sold</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr>
+          <td>{{ row[0] }}</td>
+          <td>{{ row[1] }}</td>
+          <td>{{ row[2] }}</td>
+          <td>{{ row[3] }}</td>
+          <td>{{ row[4] }}</td>
+          <td> 
+            <form action="/update" method="post">
+              <input type="hidden" name="id" value="{{ row[0] }}">
+              <input type="text" name="make" value="{{ row[1] }}">
+              <input type="text" name="model" value="{{ row[2] }}">
+              <input type="text" name="color" value="{{ row[3] }}">
+              <input type="submit" value="Update">
+            </form>
+            <form action ="/sell" method="post">
+              <input type="hidden" name="id" value="{{ row[0] }}">
+              <input type="submit" name="id" value="sell">
+            </form>
+            <form action="/delete" method="post">
+              <input type="hidden" name="id" value="{{ row[0] }}">
+              <input type="submit" value="Delete">
+            </form>
+          </td> 
+        </tr>  
+        {% endfor %}
+      </tbody>
+    </table>
+    <h2>Add a new car:</h2>
+    <form action="/add" method="post">
+      <input type="text" name="make" placeholder="Make">
+      <input type="text" name="model" placeholder="Model">
+      <input type="text" name="color" placeholder="Color">
+      <input type="submit" value="Add car">
+    </form> 
+  </body>
+</html>
