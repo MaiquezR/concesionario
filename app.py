@@ -1,173 +1,88 @@
-from logging import debug
-from re import DEBUG
+import os
 from flask import Flask, render_template, request, redirect, url_for
-import psycopg
+from flask_sqlalchemy import SQLAlchemy
 
-# List of SQL queries
-CREATE_CARS_TABLE = (
-    "CREATE TABLE IF NOT EXISTS cars (id serial PRIMARY KEY,"
-    "make varchar (150) NOT NULL,"
-    "model varchar (150) NOT NULL,"
-    "color varchar (25),"
-    "sold BIT DEFAULT B'0'"
-    ");"
-)
 
-GET_ALL_CARS = "SELECT * FROM cars"
-
-SELL_CAR = "UPDATE cars SET sold='1' WHERE id=%s"
-
-INSERT_NEW_CAR = "INSERT INTO cars (make, model, color) VALUES (%s, %s, %s)"
-
-UPDATE_CAR = "UPDATE cars SET make=%s, model=%s, color=%s WHERE id=%s"
-
-DELETE_CAR = "DELETE FROM cars WHERE id=%s"
-
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 
-conn = psycopg.connect(
-    host="localhost",
-    dbname="flask_db",
-    user="postgres",
-    password="root",
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    "postgresql+psycopg2://postgres:admin@localhost:5432/flask_db"
 )
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Open a cursor to perform database operations
-cur = conn.cursor()
-
-# Creating new table and first insert
-cur.execute(CREATE_CARS_TABLE)
-cur.execute(INSERT_NEW_CAR, ("citroen", "c3", "grey"))
-
-# Commit changes
-conn.commit()
-
-if conn:
-    cur.close()
-    conn.close()
+db = SQLAlchemy(app)
 
 
-@app.route("/")
-def index():
+class Car(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    make = db.Column(db.String(100), nullable=False)
+    model = db.Column(db.String(100), nullable=False)
+    color = db.Column(db.String(25), nullable=False)
 
-    conn = psycopg.connect(
-        host="localhost",
-        dbname="flask_db",
-        user="postgres",
-        password="root",
-    )
+    def __init__(self, make, model, color):
 
-    cur = conn.cursor()
-
-    cur.execute(GET_ALL_CARS)
-
-    data = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("index.html", data=data)
+        self.make = make
+        self.model = model
+        self.color = color
 
 
-@app.route("/add", methods=["POST"])
-def create():
+class FlaskQueries:
 
-    make = request.form["make"]
-    model = request.form["model"]
-    color = request.form["color"]
+    @app.route("/")
+    def index():
 
-    conn = psycopg.connect(
-        host="localhost",
-        dbname="flask_db",
-        user="postgres",
-        password="root",
-    )
+        cars = Car.query.all()
 
-    cur = conn.cursor()
-    cur.execute(INSERT_NEW_CAR, (make, model, color))
+        return render_template("index.html", cars=cars)
 
-    conn.commit()
+    @app.route("/add", methods=["POST"])
+    def create():
 
-    cur.close()
-    conn.close()
+        make = (request.form["make"],)
+        model = (request.form["model"],)
+        color = (request.form["color"],)
 
-    return redirect(url_for("index"))
+        new_car = Car(make=make, model=model, color=color)
 
+        db.session.add(new_car)
+        db.session.commit()
 
-@app.route("/update", methods=["POST"])
-def update():
+        return redirect(url_for("index"))
 
-    id = request.form["id"]
-    make = request.form["make"]
-    model = request.form["model"]
-    color = request.form["color"]
+    @app.route("/update", methods=["POST"])
+    def update():
 
-    conn = psycopg.connect(
-        host="localhost",
-        dbname="flask_db",
-        user="postgres",
-        password="root",
-    )
+        id = request.form["id"]
 
-    cur = conn.cursor()
-    cur.execute(UPDATE_CAR, (make, model, color, id))
+        car_to_update = Car.query.get_or_404(id)
 
-    conn.commit()
+        make = request.form["make"]
+        model = request.form["model"]
+        color = request.form["color"]
 
-    cur.close()
-    conn.close()
+        car_to_update.make = make
+        car_to_update.model = model
+        car_to_update.color = color
 
-    return redirect(url_for("index"))
+        db.session.add(car_to_update)
+        db.session.commit()
 
+        return redirect(url_for("index"))
 
-@app.route("/sell", methods=["POST"])
-def sellcar():
+    # The delete route deletes a car by id
+    @app.route("/delete", methods=["POST"])
+    def deletecar():
 
-    id = request.form["id"]
+        id = request.form["id"]
 
-    conn = psycopg.connect(
-        host="localhost",
-        dbname="flask_db",
-        user="postgres",
-        password="root",
-    )
+        car_to_delete = Car.query.get_or_404(id)
 
-    cur = conn.cursor()
+        db.session.delete(car_to_delete)
+        db.session.commit()
 
-    cur.execute(SELL_CAR, (id,))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
-
-
-# The delete route deletes a car by id
-@app.route("/delete", methods=["POST"])
-def deletecar():
-
-    id = request.form["id"]
-
-    conn = psycopg.connect(
-        host="localhost",
-        dbname="flask_db",
-        user="postgres",
-        password="root",
-    )
-
-    cur = conn.cursor()
-
-    cur.execute(DELETE_CAR, (id,))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
+        return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
